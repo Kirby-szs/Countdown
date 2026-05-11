@@ -13,146 +13,154 @@
         justify-content: center;
         align-items: center;
         background: radial-gradient(circle at top, #1e3c72, #0b1020);
-        color: white;
         font-family: Arial, sans-serif;
-        text-align: center;
-        overflow: hidden;
+        color: white;
     }
 
-    .container {
-        padding: 20px;
+    .wrap {
+        text-align: center;
     }
 
     h1 {
-        font-size: 2rem;
-        opacity: 0.85;
         margin-bottom: 30px;
+        opacity: 0.85;
     }
 
-    #countdown {
-        font-size: 7vw;
-        font-weight: 900;
-        letter-spacing: 2px;
-        transition: transform 0.25s ease, opacity 0.25s ease;
+    /* container for digits */
+    .counter {
+        display: flex;
+        justify-content: center;
+        gap: 6px;
+        font-size: 5rem;
+        font-weight: 800;
     }
 
-    /* ✨ animation class */
-    .pop {
-        transform: scale(1.15);
-        opacity: 0.6;
+    /* each digit window */
+    .digit {
+        width: 60px;
+        height: 80px;
+        overflow: hidden;
+        position: relative;
+        background: rgba(255,255,255,0.08);
+        border-radius: 10px;
     }
 
-    .sub {
+    /* scrolling number strip */
+    .strip {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        transition: transform 0.35s ease-in-out;
+    }
+
+    .num {
+        height: 80px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .label {
         margin-top: 20px;
-        opacity: 0.6;
-    }
-
-    .done {
-        font-size: 3rem;
-        color: #00ff99;
-        animation: pulse 1s infinite;
-    }
-
-    @keyframes pulse {
-        0% { transform: scale(1); }
-        50% { transform: scale(1.1); }
-        100% { transform: scale(1); }
-    }
-
-    .options {
-        margin-top: 25px;
+        opacity: 0.7;
         font-size: 1rem;
-        opacity: 0.8;
-    }
-
-    label {
-        display: block;
-        margin: 6px;
-        cursor: pointer;
-    }
-
-    input {
-        transform: scale(1.2);
-        margin-right: 8px;
     }
 </style>
 </head>
 
 <body>
 
-<div class="container">
-    <h1>🎓 School Ends Countdown</h1>
+<div class="wrap">
+    <h1>🎓 School Countdown</h1>
 
-    <div id="countdown">Loading...</div>
-    <div class="sub">Time until June 10</div>
+    <div class="counter" id="counter"></div>
 
-    <div class="options">
-        <label><input type="checkbox" id="excludeWeekends"> Exclude weekends</label>
-        <label><input type="checkbox" id="excludeJune"> Exclude June days</label>
-    </div>
+    <div class="label">Time until June 10</div>
 </div>
 
 <script>
 const endDate = new Date("2026-06-10T15:00:00");
-const el = document.getElementById("countdown");
+const counter = document.getElementById("counter");
 
-function filteredDiff(now, end, noWeekends, noJune) {
-    let current = new Date(now);
-    let total = 0;
+// build digit column (0–9 repeated)
+function createStrip() {
+    const strip = document.createElement("div");
+    strip.className = "strip";
 
-    while (current < end) {
-        const next = new Date(current);
-        next.setMinutes(current.getMinutes() + 30);
-
-        const weekend = current.getDay() === 0 || current.getDay() === 6;
-        const june = current.getMonth() === 5;
-
-        if ((!noWeekends || !weekend) && (!noJune || !june)) {
-            total += next - current;
-        }
-
-        current = next;
+    for (let i = 0; i < 10; i++) {
+        const d = document.createElement("div");
+        d.className = "num";
+        d.textContent = i;
+        strip.appendChild(d);
     }
 
-    return total;
+    return strip;
 }
 
-function animateChange() {
-    el.classList.add("pop");
-    setTimeout(() => el.classList.remove("pop"), 250);
+// create digit boxes
+let digitStrips = [];
+
+function setupDigits(length) {
+    counter.innerHTML = "";
+    digitStrips = [];
+
+    for (let i = 0; i < length; i++) {
+        const box = document.createElement("div");
+        box.className = "digit";
+
+        const strip = createStrip();
+        box.appendChild(strip);
+
+        counter.appendChild(box);
+        digitStrips.push(strip);
+    }
+}
+
+// animate digits
+function setNumber(numStr) {
+    // pad so it doesn't jump layout
+    numStr = numStr.toString().padStart(8, "0");
+
+    if (digitStrips.length !== numStr.length) {
+        setupDigits(numStr.length);
+    }
+
+    for (let i = 0; i < numStr.length; i++) {
+        const digit = parseInt(numStr[i]);
+        const strip = digitStrips[i];
+
+        strip.style.transform = `translateY(-${digit * 80}px)`;
+    }
 }
 
 function update() {
     const now = new Date();
-
-    const noWeekends = document.getElementById("excludeWeekends").checked;
-    const noJune = document.getElementById("excludeJune").checked;
-
-    let diff = (noWeekends || noJune)
-        ? filteredDiff(now, endDate, noWeekends, noJune)
-        : endDate - now;
+    let diff = endDate - now;
 
     if (diff <= 0) {
-        el.innerHTML = "🎉 DONE!";
-        el.classList.add("done");
+        setNumber("00000000");
         return;
     }
 
     const totalSeconds = Math.floor(diff / 1000);
-
     const days = Math.floor(totalSeconds / 86400);
+
     const hours = Math.floor((totalSeconds % 86400) / 3600);
     const minutes = Math.floor((totalSeconds % 3600) / 60);
     const seconds = totalSeconds % 60;
 
-    const newText = `${days}d ${hours}h ${minutes}m ${seconds}s`;
+    // compact format: DDDHHMMSS
+    const display =
+        String(days).padStart(3, "0") +
+        String(hours).padStart(2, "0") +
+        String(minutes).padStart(2, "0") +
+        String(seconds).padStart(2, "0");
 
-    if (el.innerHTML !== newText) {
-        el.innerHTML = newText;
-        animateChange();
-    }
+    setNumber(display);
 }
 
+setupDigits(8);
 setInterval(update, 1000);
 update();
 </script>
