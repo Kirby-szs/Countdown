@@ -15,152 +15,208 @@
         background: radial-gradient(circle at top, #1e3c72, #0b1020);
         font-family: Arial, sans-serif;
         color: white;
-    }
-
-    .wrap {
-        text-align: center;
+        flex-direction: column;
     }
 
     h1 {
-        margin-bottom: 30px;
+        margin-bottom: 20px;
         opacity: 0.85;
     }
 
-    /* container for digits */
-    .counter {
-        display: flex;
-        justify-content: center;
-        gap: 6px;
-        font-size: 5rem;
-        font-weight: 800;
+    .block {
+        margin: 12px 0;
+        text-align: center;
     }
 
-    /* each digit window */
+    .row {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        font-size: 2rem;
+        font-weight: bold;
+    }
+
+    .label {
+        font-size: 1rem;
+        opacity: 0.7;
+        margin-top: 4px;
+    }
+
     .digit {
-        width: 60px;
-        height: 80px;
+        width: 40px;
+        height: 55px;
         overflow: hidden;
         position: relative;
         background: rgba(255,255,255,0.08);
-        border-radius: 10px;
+        border-radius: 8px;
     }
 
-    /* scrolling number strip */
     .strip {
         position: absolute;
-        top: 0;
-        left: 0;
         width: 100%;
         transition: transform 0.35s ease-in-out;
     }
 
     .num {
-        height: 80px;
+        height: 55px;
         display: flex;
         align-items: center;
         justify-content: center;
     }
 
-    .label {
-        margin-top: 20px;
-        opacity: 0.7;
+    .options {
+        margin-top: 25px;
         font-size: 1rem;
+        opacity: 0.85;
+        text-align: center;
+    }
+
+    label {
+        display: block;
+        margin: 6px;
+        cursor: pointer;
+    }
+
+    input {
+        transform: scale(1.2);
+        margin-right: 8px;
     }
 </style>
 </head>
 
 <body>
 
-<div class="wrap">
-    <h1>🎓 School Countdown</h1>
+<h1>🎓 School Countdown</h1>
 
-    <div class="counter" id="counter"></div>
+<div class="block">
+    <div class="row" id="daysRow"></div>
+    <div class="label">Days</div>
+</div>
 
-    <div class="label">Time until June 10</div>
+<div class="block">
+    <div class="row" id="hoursRow"></div>
+    <div class="label">Hours</div>
+</div>
+
+<div class="block">
+    <div class="row" id="minutesRow"></div>
+    <div class="label">Minutes</div>
+</div>
+
+<div class="block">
+    <div class="row" id="secondsRow"></div>
+    <div class="label">Seconds</div>
+</div>
+
+<div class="options">
+    <label>
+        <input type="checkbox" id="excludeWeekends">
+        Exclude weekends
+    </label>
+
+    <label>
+        <input type="checkbox" id="excludeJune">
+        Exclude June days
+    </label>
 </div>
 
 <script>
 const endDate = new Date("2026-06-10T15:00:00");
-const counter = document.getElementById("counter");
 
-// build digit column (0–9 repeated)
-function createStrip() {
+function makeDigit() {
+    const box = document.createElement("div");
+    box.className = "digit";
+
     const strip = document.createElement("div");
     strip.className = "strip";
 
     for (let i = 0; i < 10; i++) {
-        const d = document.createElement("div");
-        d.className = "num";
-        d.textContent = i;
-        strip.appendChild(d);
+        const n = document.createElement("div");
+        n.className = "num";
+        n.textContent = i;
+        strip.appendChild(n);
     }
 
-    return strip;
+    box.appendChild(strip);
+    return { box, strip };
 }
 
-// create digit boxes
-let digitStrips = [];
+function fillRow(row, value, size) {
+    row.innerHTML = "";
+    const strips = [];
 
-function setupDigits(length) {
-    counter.innerHTML = "";
-    digitStrips = [];
+    value = String(value).padStart(size, "0");
 
-    for (let i = 0; i < length; i++) {
-        const box = document.createElement("div");
-        box.className = "digit";
-
-        const strip = createStrip();
-        box.appendChild(strip);
-
-        counter.appendChild(box);
-        digitStrips.push(strip);
+    for (let i = 0; i < size; i++) {
+        const { box, strip } = makeDigit();
+        row.appendChild(box);
+        strips.push(strip);
     }
+
+    for (let i = 0; i < size; i++) {
+        const digit = parseInt(value[i]);
+        strips[i].style.transform = `translateY(-${digit * 55}px)`;
+    }
+
+    return strips;
 }
 
-// animate digits
-function setNumber(numStr) {
-    // pad so it doesn't jump layout
-    numStr = numStr.toString().padStart(8, "0");
+let daysStrips = [], hoursStrips = [], minutesStrips = [], secondsStrips = [];
 
-    if (digitStrips.length !== numStr.length) {
-        setupDigits(numStr.length);
+function updateRows(days, hours, minutes, seconds) {
+    daysStrips = fillRow(document.getElementById("daysRow"), days, 3);
+    hoursStrips = fillRow(document.getElementById("hoursRow"), hours, 2);
+    minutesStrips = fillRow(document.getElementById("minutesRow"), minutes, 2);
+    secondsStrips = fillRow(document.getElementById("secondsRow"), seconds, 2);
+}
+
+function filteredDiff(now, end, noWeekends, noJune) {
+    let current = new Date(now);
+    let total = 0;
+
+    while (current < end) {
+        const next = new Date(current);
+        next.setMinutes(current.getMinutes() + 30);
+
+        const weekend = current.getDay() === 0 || current.getDay() === 6;
+        const june = current.getMonth() === 5;
+
+        if ((!noWeekends || !weekend) && (!noJune || !june)) {
+            total += next - current;
+        }
+
+        current = next;
     }
 
-    for (let i = 0; i < numStr.length; i++) {
-        const digit = parseInt(numStr[i]);
-        const strip = digitStrips[i];
-
-        strip.style.transform = `translateY(-${digit * 80}px)`;
-    }
+    return total;
 }
 
 function update() {
     const now = new Date();
-    let diff = endDate - now;
+
+    const noWeekends = document.getElementById("excludeWeekends").checked;
+    const noJune = document.getElementById("excludeJune").checked;
+
+    let diff = (noWeekends || noJune)
+        ? filteredDiff(now, endDate, noWeekends, noJune)
+        : endDate - now;
 
     if (diff <= 0) {
-        setNumber("00000000");
+        updateRows(0,0,0,0);
         return;
     }
 
     const totalSeconds = Math.floor(diff / 1000);
-    const days = Math.floor(totalSeconds / 86400);
 
+    const days = Math.floor(totalSeconds / 86400);
     const hours = Math.floor((totalSeconds % 86400) / 3600);
     const minutes = Math.floor((totalSeconds % 3600) / 60);
     const seconds = totalSeconds % 60;
 
-    // compact format: DDDHHMMSS
-    const display =
-        String(days).padStart(3, "0") +
-        String(hours).padStart(2, "0") +
-        String(minutes).padStart(2, "0") +
-        String(seconds).padStart(2, "0");
-
-    setNumber(display);
+    updateRows(days, hours, minutes, seconds);
 }
 
-setupDigits(8);
 setInterval(update, 1000);
 update();
 </script>
