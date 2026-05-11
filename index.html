@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>School Year Countdown</title>
+
+<style>
+    body {
+        margin: 0;
+        font-family: Arial, sans-serif;
+        background: linear-gradient(135deg, #1e3c72, #2a5298);
+        color: white;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+    }
+
+    .container {
+        background: rgba(255,255,255,0.1);
+        backdrop-filter: blur(10px);
+        padding: 30px;
+        border-radius: 20px;
+        width: 90%;
+        max-width: 700px;
+        box-shadow: 0 0 20px rgba(0,0,0,0.3);
+    }
+
+    h1 {
+        text-align: center;
+        margin-bottom: 10px;
+    }
+
+    .main-time {
+        text-align: center;
+        font-size: 2rem;
+        margin: 20px 0;
+        font-weight: bold;
+    }
+
+    .stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+        margin-top: 20px;
+    }
+
+    .card {
+        background: rgba(255,255,255,0.15);
+        padding: 20px;
+        border-radius: 15px;
+        text-align: center;
+    }
+
+    .card h2 {
+        margin: 0;
+        font-size: 1.2rem;
+    }
+
+    .card p {
+        font-size: 1.4rem;
+        margin-top: 10px;
+        font-weight: bold;
+    }
+
+    .options {
+        margin-top: 25px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    label {
+        font-size: 1rem;
+        cursor: pointer;
+    }
+
+    input[type="checkbox"] {
+        transform: scale(1.2);
+        margin-right: 8px;
+    }
+
+    .footer {
+        margin-top: 25px;
+        text-align: center;
+        opacity: 0.8;
+    }
+</style>
+</head>
+<body>
+
+<div class="container">
+    <h1>🎓 End of School Countdown</h1>
+
+    <div class="main-time" id="countdown">
+        Loading...
+    </div>
+
+    <div class="options">
+        <label>
+            <input type="checkbox" id="excludeWeekends">
+            Exclude weekends
+        </label>
+
+        <label>
+            <input type="checkbox" id="excludeJune">
+            Exclude all June days
+        </label>
+    </div>
+
+    <div class="stats">
+        <div class="card">
+            <h2>Days Left</h2>
+            <p id="days">0</p>
+        </div>
+
+        <div class="card">
+            <h2>Hours Left</h2>
+            <p id="hours">0</p>
+        </div>
+
+        <div class="card">
+            <h2>Minutes Left</h2>
+            <p id="minutes">0</p>
+        </div>
+
+        <div class="card">
+            <h2>Seconds Left</h2>
+            <p id="seconds">0</p>
+        </div>
+
+        <div class="card">
+            <h2>School Progress</h2>
+            <p id="progress">0%</p>
+        </div>
+
+        <div class="card">
+            <h2>Weeks Left</h2>
+            <p id="weeks">0</p>
+        </div>
+    </div>
+
+    <div class="footer">
+        Updates live every second ⏱️
+    </div>
+</div>
+
+<script>
+    // CHANGE THIS IF NEEDED
+    const endDate = new Date("2026-06-10T15:00:00");
+
+    // Approximate school year start
+    const schoolStart = new Date("2025-09-01T08:00:00");
+
+    function calculateFilteredTime(now, end, noWeekends, noJune) {
+        let current = new Date(now);
+        let totalMs = 0;
+
+        while (current < end) {
+            const next = new Date(current);
+            next.setHours(current.getHours() + 1);
+
+            const isWeekend = current.getDay() === 0 || current.getDay() === 6;
+            const isJune = current.getMonth() === 5;
+
+            if (
+                (!noWeekends || !isWeekend) &&
+                (!noJune || !isJune)
+            ) {
+                totalMs += (next - current);
+            }
+
+            current = next;
+        }
+
+        return totalMs;
+    }
+
+    function updateCountdown() {
+        const now = new Date();
+
+        const excludeWeekends =
+            document.getElementById("excludeWeekends").checked;
+
+        const excludeJune =
+            document.getElementById("excludeJune").checked;
+
+        let diff;
+
+        if (excludeWeekends || excludeJune) {
+            diff = calculateFilteredTime(
+                now,
+                endDate,
+                excludeWeekends,
+                excludeJune
+            );
+        } else {
+            diff = endDate - now;
+        }
+
+        if (diff <= 0) {
+            document.getElementById("countdown").innerHTML =
+                "🎉 SCHOOL IS OVER!";
+            return;
+        }
+
+        const totalSeconds = Math.floor(diff / 1000);
+
+        const days = Math.floor(totalSeconds / 86400);
+        const hours = Math.floor((totalSeconds % 86400) / 3600);
+        const minutes = Math.floor((totalSeconds % 3600) / 60);
+        const seconds = totalSeconds % 60;
+
+        const weeks = (days / 7).toFixed(1);
+
+        // Progress
+        const totalSchoolTime = endDate - schoolStart;
+        const elapsed = now - schoolStart;
+        const progress = Math.min(
+            100,
+            Math.max(0, ((elapsed / totalSchoolTime) * 100))
+        ).toFixed(1);
+
+        document.getElementById("countdown").innerHTML =
+            `${days}d ${hours}h ${minutes}m ${seconds}s`;
+
+        document.getElementById("days").textContent = days;
+        document.getElementById("hours").textContent =
+            days * 24 + hours;
+
+        document.getElementById("minutes").textContent =
+            Math.floor(totalSeconds / 60);
+
+        document.getElementById("seconds").textContent =
+            totalSeconds.toLocaleString();
+
+        document.getElementById("weeks").textContent = weeks;
+
+        document.getElementById("progress").textContent =
+            progress + "%";
+    }
+
+    updateCountdown();
+    setInterval(updateCountdown, 1000);
+</script>
+
+</body>
+</html>
