@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>School Countdown</title>
 
 <style>
@@ -16,6 +16,7 @@
         color: white;
         font-family: Arial, sans-serif;
         text-align: center;
+        overflow: hidden;
     }
 
     .container {
@@ -24,42 +25,55 @@
 
     h1 {
         font-size: 2rem;
-        margin-bottom: 20px;
-        opacity: 0.9;
+        opacity: 0.85;
+        margin-bottom: 30px;
     }
 
     #countdown {
-        font-size: 6vw;
-        font-weight: 800;
+        font-size: 7vw;
+        font-weight: 900;
         letter-spacing: 2px;
-        margin: 20px 0;
+        transition: transform 0.25s ease, opacity 0.25s ease;
+    }
+
+    /* ✨ animation class */
+    .pop {
+        transform: scale(1.15);
+        opacity: 0.6;
     }
 
     .sub {
-        font-size: 1rem;
-        opacity: 0.7;
+        margin-top: 20px;
+        opacity: 0.6;
+    }
+
+    .done {
+        font-size: 3rem;
+        color: #00ff99;
+        animation: pulse 1s infinite;
+    }
+
+    @keyframes pulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.1); }
+        100% { transform: scale(1); }
     }
 
     .options {
         margin-top: 25px;
         font-size: 1rem;
+        opacity: 0.8;
     }
 
     label {
         display: block;
-        margin: 8px 0;
+        margin: 6px;
         cursor: pointer;
     }
 
     input {
         transform: scale(1.2);
         margin-right: 8px;
-    }
-
-    .done {
-        font-size: 3rem;
-        font-weight: bold;
-        color: #00ff99;
     }
 </style>
 </head>
@@ -70,24 +84,17 @@
     <h1>🎓 School Ends Countdown</h1>
 
     <div id="countdown">Loading...</div>
-
-    <div class="sub" id="label">Time left until June 10</div>
+    <div class="sub">Time until June 10</div>
 
     <div class="options">
-        <label>
-            <input type="checkbox" id="excludeWeekends">
-            Exclude weekends
-        </label>
-
-        <label>
-            <input type="checkbox" id="excludeJune">
-            Exclude June days
-        </label>
+        <label><input type="checkbox" id="excludeWeekends"> Exclude weekends</label>
+        <label><input type="checkbox" id="excludeJune"> Exclude June days</label>
     </div>
 </div>
 
 <script>
 const endDate = new Date("2026-06-10T15:00:00");
+const el = document.getElementById("countdown");
 
 function filteredDiff(now, end, noWeekends, noJune) {
     let current = new Date(now);
@@ -110,6 +117,11 @@ function filteredDiff(now, end, noWeekends, noJune) {
     return total;
 }
 
+function animateChange() {
+    el.classList.add("pop");
+    setTimeout(() => el.classList.remove("pop"), 250);
+}
+
 function update() {
     const now = new Date();
 
@@ -119,8 +131,6 @@ function update() {
     let diff = (noWeekends || noJune)
         ? filteredDiff(now, endDate, noWeekends, noJune)
         : endDate - now;
-
-    const el = document.getElementById("countdown");
 
     if (diff <= 0) {
         el.innerHTML = "🎉 DONE!";
@@ -135,7 +145,12 @@ function update() {
     const minutes = Math.floor((totalSeconds % 3600) / 60);
     const seconds = totalSeconds % 60;
 
-    el.innerHTML = `${days}d ${hours}h ${minutes}m ${seconds}s`;
+    const newText = `${days}d ${hours}h ${minutes}m ${seconds}s`;
+
+    if (el.innerHTML !== newText) {
+        el.innerHTML = newText;
+        animateChange();
+    }
 }
 
 setInterval(update, 1000);
